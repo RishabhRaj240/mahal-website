@@ -56,8 +56,7 @@ Development Tools: Git, GitHub, and Visual Studio Code
 
 Add a screenshot of your website here to make your repository more visually appealing.
 
-![Mahal Website Preview](<img width="1408" height="750" alt="Screenshot 2026-10-25 at 6 20 11 PM" src="https://github.com/user-attachments/assets/6b88fcf4-2f5f-4c01-ab3e-ad3e0014aa53" />
-)
+<img width="1408" height="750" alt="Screenshot 2026-10-25 at 6 20 11 PM" src="https://github.com/user-attachments/assets/19530090-6cea-424f-8b6b-8567d37d8f1f" />
 
 Place your screenshot at public/mahal-preview.png, or replace the path with the correct image location.
 
