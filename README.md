@@ -56,7 +56,8 @@ Development Tools: Git, GitHub, and Visual Studio Code
 
 Add a screenshot of your website here to make your repository more visually appealing.
 
-![Mahal Website Preview](./public/mahal-preview.png)
+![Mahal Website Preview](![Uploading Screenshot 2026-10-25 at 6.20.11 PM.png…]()
+)
 
 Place your screenshot at public/mahal-preview.png, or replace the path with the correct image location.
 
