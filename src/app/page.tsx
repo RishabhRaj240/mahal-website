@@ -1,69 +1,188 @@
-import Image from "next/image";
+"use client";
+
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import Lenis from "lenis";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+import VideoScrubber from "@/components/VideoScrubber";
+import NarrativeMilestones from "@/components/NarrativeMilestones";
+import Navbar from "@/components/Navbar";
+import TimelineHUD from "@/components/TimelineHUD";
+import CustomCursor from "@/components/CustomCursor";
+import Preloader from "@/components/Preloader";
+import PrivateViewingModal from "@/components/PrivateViewingModal";
+
+// Register GSAP plugins
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function Home() {
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
+  const [videoDuration, setVideoDuration] = useState<number>(68);
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [isPreloaded, setIsPreloaded] = useState<boolean>(false);
+  const [videoLoaded, setVideoLoaded] = useState<boolean>(false);
+  const [isViewingModalOpen, setIsViewingModalOpen] = useState<boolean>(false);
+  const [isAutoPlaying, setIsAutoPlaying] = useState<boolean>(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lenisRef = useRef<Lenis | null>(null);
+  const autoPlayRafRef = useRef<number | null>(null);
+
+  // Initialize Lenis smooth scroll and coordinate with GSAP ScrollTrigger
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.4,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: "vertical",
+      gestureOrientation: "vertical",
+      smoothWheel: true,
+      wheelMultiplier: 0.9,
+      touchMultiplier: 1.5,
+    });
+    lenisRef.current = lenis;
+
+    // Connect Lenis to ScrollTrigger
+    lenis.on("scroll", ScrollTrigger.update);
+
+    const updateLenis = (time: number) => {
+      lenis.raf(time * 1000);
+    };
+
+    gsap.ticker.add(updateLenis);
+    gsap.ticker.lagSmoothing(0);
+
+    // Track scroll progress along the virtual height
+    const handleScroll = () => {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll > 0) {
+        const rawProgress = window.scrollY / maxScroll;
+        const clamped = Math.max(0, Math.min(1, rawProgress));
+        setScrollProgress(clamped);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      gsap.ticker.remove(updateLenis);
+      lenis.destroy();
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  // Handle jump to specific progress
+  const handleJumpToProgress = useCallback((targetProgress: number) => {
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+    const targetY = targetProgress * maxScroll;
+
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(targetY, {
+        duration: 2.0,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      });
+    } else {
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+    }
+  }, []);
+
+  // Cruise / Auto-tour mode
+  useEffect(() => {
+    if (!isAutoPlaying) {
+      if (autoPlayRafRef.current) cancelAnimationFrame(autoPlayRafRef.current);
+      return;
+    }
+
+    const cruiseSpeed = 0.00028; // Glides comfortably through the 80s cinema
+    const loop = () => {
+      setScrollProgress((prev) => {
+        const next = prev + cruiseSpeed;
+        if (next >= 1) {
+          setIsAutoPlaying(false);
+          return 1;
+        }
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        window.scrollTo(0, next * maxScroll);
+        return next;
+      });
+      autoPlayRafRef.current = requestAnimationFrame(loop);
+    };
+
+    autoPlayRafRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      if (autoPlayRafRef.current) cancelAnimationFrame(autoPlayRafRef.current);
+    };
+  }, [isAutoPlaying]);
+
+  // Video ready callback
+  const handleVideoReady = useCallback((duration: number) => {
+    setVideoDuration(duration);
+    setVideoLoaded(true);
+  }, []);
+
+  // Time update callback from video scrubber
+  const handleTimeUpdate = useCallback((time: number) => {
+    setCurrentTime(time);
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="relative bg-[#060608] min-h-screen text-[#F9F8F5] selection:bg-[#D4AF37]/30">
+      {/* Luxury Custom Ring Cursor */}
+      <CustomCursor />
+
+      {/* Cinematic Entrance Preloader */}
+      <Preloader
+        videoLoaded={videoLoaded}
+        loadProgress={98}
+        onComplete={() => setIsPreloaded(true)}
+      />
+
+      {/* Floating Glass Navbar */}
+      <Navbar
+        currentProgress={scrollProgress}
+        onJumpToProgress={handleJumpToProgress}
+        onRequestViewing={() => setIsViewingModalOpen(true)}
+        isAutoPlaying={isAutoPlaying}
+        onToggleAutoPlay={() => setIsAutoPlaying(!isAutoPlaying)}
+      />
+
+      {/* Interactive Timeline HUD (Right Vertical Bar) */}
+      <TimelineHUD
+        progress={scrollProgress}
+        currentTime={currentTime}
+        duration={videoDuration}
+        onJumpToProgress={handleJumpToProgress}
+      />
+
+      {/* Sticky Fullscreen Video Player & Dynamic Lighting */}
+      <VideoScrubber
+        progress={scrollProgress}
+        onVideoReady={handleVideoReady}
+        onTimeUpdate={handleTimeUpdate}
+      />
+
+      {/* Floating Kinetic Typography & Narrative Milestones */}
+      <NarrativeMilestones
+        progress={scrollProgress}
+        onRequestViewing={() => setIsViewingModalOpen(true)}
+        onExploreClick={() => handleJumpToProgress(0.14)}
+      />
+
+      {/* Virtual Scroll Height Track (10,500px enables silk-smooth scroll scrub control) */}
+      <div
+        ref={containerRef}
+        className="relative w-full pointer-events-none"
+        style={{ height: "10500px" }}
+      />
+
+      {/* Private Residence Viewing VIP Modal */}
+      <PrivateViewingModal
+        isOpen={isViewingModalOpen}
+        onClose={() => setIsViewingModalOpen(false)}
+      />
+    </main>
   );
 }
