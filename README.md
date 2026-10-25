@@ -90,7 +90,7 @@ Open the local URL displayed in your terminal to view the website.
 
 🌐 Live Demo
 
-Live Website: Add your deployed website URL here.
+Live Website: https://mahal-website-ecru.vercel.app/
 
 📂 Project Structure
 
