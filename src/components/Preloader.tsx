@@ -29,6 +29,14 @@ export default function Preloader({ onComplete, videoLoaded, loadProgress }: Pre
     return () => clearInterval(timer);
   }, [videoLoaded, loadProgress]);
 
+  // Safety fallback for mobile or throttled networks: ensure preloader completes smoothly
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      setDisplayProgress(100);
+    }, 2400);
+    return () => clearTimeout(safetyTimer);
+  }, []);
+
   useEffect(() => {
     if (displayProgress >= 100) {
       const timeout = setTimeout(() => {
